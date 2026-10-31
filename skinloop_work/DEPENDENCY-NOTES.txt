@@ -1,0 +1,12 @@
+SkinLoop AI - dependency correction
+
+Changed:
+- Updated the direct esbuild requirement from ^0.25.0 to ^0.28.0. Vite 8 requires esbuild ^0.27.0 or ^0.28.0.
+- Added npm allowScripts entries for esbuild@0.28.2 and protobufjs@7.6.6, matching the successful local installation setup discussed with the project owner.
+
+Not changed:
+- Kept vite-plugin-pwa@2.0.0 and the existing Workbox/PWA configuration.
+- Did not add risky major-version overrides for glob, minimatch, ejs, or filelist.
+- The npm audit advisories in the transitive PWA build-tool dependency tree are therefore not claimed to be fixed. npm audit may continue to report them. Do not use npm audit fix --force because it proposes a breaking vite-plugin-pwa downgrade.
+
+After extracting this ZIP, run: npm install, npm run lint, npm run build, npm run test:all, npm audit.

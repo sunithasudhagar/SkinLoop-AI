@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Gracefully handle Vite dev HMR WebSockets in Cloud Run proxy environments.
+      // Environment rule: "HMR: Disabled. Ignore WebSocket errors."
+      (function() {
+        if (typeof window === 'undefined') return;
+        var NativeWebSocket = window.WebSocket;
+        if (NativeWebSocket) {
+          window.WebSocket = function(url, protocols) {
+            var isHmr = false;
+            try {
+              if (typeof url === 'string' && (url.indexOf('vite') !== -1 || url.indexOf('hmr') !== -1)) isHmr = true;
+              if (protocols === 'vite-hmr' || (Array.isArray(protocols) && protocols.indexOf('vite-hmr') !== -1)) isHmr = true;
+            } catch (e) {}
+
+            if (isHmr) {
+              var listeners = {};
+              var mock = {
+                url: url,
+                readyState: 1, // WebSocket.OPEN
+                CONNECTING: 0,
+                OPEN: 1,
+                CLOSING: 2,
+                CLOSED: 3,
+                bufferedAmount: 0,
+                extensions: '',
+                protocol: 'vite-hmr',
+                binaryType: 'blob',
+                onopen: null,
+                onmessage: null,
+                onerror: null,
+                onclose: null,
+                addEventListener: function(type, fn) {
+                  if (!listeners[type]) listeners[type] = [];
+                  listeners[type].push(fn);
+                  if (type === 'open') {
+                    setTimeout(function() {
+                      try { fn({ type: 'open' }); } catch(err) {}
+                    }, 0);
+                  }
+                },
+                removeEventListener: function(type, fn) {
+                  if (listeners[type]) {
+                    listeners[type] = listeners[type].filter(function(cb) { return cb !== fn; });
+                  }
+                },
+                dispatchEvent: function() { return true; },
+                send: function() {},
+                close: function() {
+                  mock.readyState = 3;
+                  var closeEvt = { type: 'close', wasClean: true, code: 1000, reason: 'Normal' };
+                  if (typeof mock.onclose === 'function') {
+                    try { mock.onclose(closeEvt); } catch(err) {}
+                  }
+                  if (listeners['close']) {
+                    listeners['close'].forEach(function(fn) {
+                      try { fn(closeEvt); } catch(err) {}
+                    });
+                  }
+                }
+              };
+              setTimeout(function() {
+                if (typeof mock.onopen === 'function') {
+                  try { mock.onopen({ type: 'open' }); } catch(err) {}
+                }
+              }, 0);
+              return mock;
+            }
+            return new NativeWebSocket(url, protocols);
+          };
+          window.WebSocket.prototype = NativeWebSocket.prototype;
+          window.WebSocket.CONNECTING = 0;
+          window.WebSocket.OPEN = 1;
+          window.WebSocket.CLOSING = 2;
+          window.WebSocket.CLOSED = 3;
+        }
+
+        var origConsoleError = console.error;
+        console.error = function() {
+          var firstArg = arguments[0];
+          if (typeof firstArg === 'string' && (firstArg.indexOf('WebSocket closed without opened') !== -1 || firstArg.indexOf('[vite] connecting...') !== -1)) {
+            return;
+          }
+          origConsoleError.apply(console, arguments);
+        };
+
+        window.addEventListener('error', function(event) {
+          if (event && event.message && event.message.indexOf('WebSocket closed without opened') !== -1) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+            return true;
+          }
+        }, true);
+      })();
+    </script>
+    <title>SkinLoop AI — Understand your skin. Find your look. Shop smarter.</title>
+    <meta name="description" content="Understand your skin. Find your look. Shop smarter. AI-powered personalized skincare, foundation finder, makeup studio, and routine builder." />
+    <meta property="og:title" content="SkinLoop AI — Understand your skin. Find your look. Shop smarter." />
+    <meta property="og:description" content="Understand your skin. Find your look. Shop smarter. AI-powered personalized skincare, foundation finder, makeup studio, and routine builder." />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#2D2826" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="SkinLoop AI" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-[#FAF8F5] text-stone-900 antialiased selection:bg-rose-100 selection:text-rose-900 min-h-screen">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
